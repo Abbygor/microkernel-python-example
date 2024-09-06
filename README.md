@@ -48,8 +48,8 @@ microkernel-python-example/
 1. **Clone the Repository**
 
     ```bash
-    git clone <repository_url>
-    cd <repository_directory>
+    git clone https://github.com/Abbygor/microkernel-python-example.git
+    cd microkernel-python-example
     ```
 
 2. **Create a Virtual Environment**

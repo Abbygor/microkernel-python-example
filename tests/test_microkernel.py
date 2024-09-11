@@ -12,8 +12,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from core.kernel import MicroKernel
 from core.base_plugin import BasePlugin
 
-
-
 class TestMicroKernel(unittest.IsolatedAsyncioTestCase):
 
     async def asyncSetUp(self):
@@ -24,30 +22,31 @@ class TestMicroKernel(unittest.IsolatedAsyncioTestCase):
     @patch('core.kernel.pika.PlainCredentials')
     async def test_start_consuming(self, mock_credentials, mock_connection_params, mock_blocking_connection):
         mock_channel = MagicMock()
-        mock_method = MagicMock(delivery_tag=1)
-        mock_properties = MagicMock()
-        mock_body = json.dumps({'plugin_a': {'data': 123}})
-        
-        # Crear una instancia del consumidor
-        consumer = consumer_module.RabbitMQConsumer(
-            rabbitmq_host='localhost',
-            rabbitmq_port=5672,
-            rabbitmq_user='user',
-            rabbitmq_password='password',
-            rabbitmq_queue='test_queue'
+        mock_connection = MagicMock()
+        mock_blocking_connection.return_value = mock_connection
+        mock_connection.channel.return_value = mock_channel
+
+        # Simula el método basic_get para que devuelva una tupla válida
+        mock_channel.basic_get.return_value = (
+            MagicMock(method_frame='mock_frame'),
+            MagicMock(header_frame='mock_header'),
+            json.dumps({"plugin_a": {"data": "test"}})  # body
         )
 
-        # Mock del método execute_plugin
-        consumer.execute_plugin = AsyncMock(return_value='result_a')
-        
-        # Ejecutar el método asíncrono process_message
-        await consumer.process_message(mock_channel, mock_method, mock_properties, mock_body)
-        
-        # Verificar que execute_plugin fue llamado correctamente
-        consumer.execute_plugin.assert_called_with('plugin_a', {'data': 123})
-        
-        # Verificar que basic_ack fue llamado con el delivery_tag correcto
-        mock_channel.basic_ack.assert_called_with(delivery_tag=1)
+        # Usa el ciclo de eventos proporcionado por IsolatedAsyncioTestCase
+        loop = asyncio.get_event_loop()
+        loop.create_task(self.microkernel.start_consuming())
+        await asyncio.sleep(1)  # Temporizador para permitir la ejecución del ciclo de eventos
+
+        # Asegúrate de que los métodos esperados hayan sido llamados
+        mock_blocking_connection.assert_called_once_with(
+            pika.ConnectionParameters(
+                host=self.microkernel.rabbitmq_host,
+                port=self.microkernel.rabbitmq_port,
+                credentials=pika.PlainCredentials(self.microkernel.rabbitmq_user, self.microkernel.rabbitmq_password)
+            )
+        )
+        mock_channel.queue_declare.assert_called_once_with(queue=self.microkernel.rabbitmq_queue, durable=True)
 
     @patch('core.kernel.asyncio.run', new_callable=AsyncMock)
     @patch('core.kernel.MicroKernel.execute_plugin', new_callable=AsyncMock)

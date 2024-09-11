@@ -33,6 +33,11 @@ microkernel-python-example/
 │   ├── plugin_a.py             # Example plugin A
 │   ├── plugin_b.py             # Example plugin B
 │   └── plugin_c.py             # Example plugin C
+│
+├── tests/                      # Tests files
+│   ├── test_base_plugin.py     # Tests for BasePlugin class
+│   ├── test_microkernel.py     # Tests for the microkernel
+│   └── test_plugins.py         # Tests for plugin implementations
 ├── main.py                     # Entry point to start the microkernel
 ├── requirements.txt            # Python dependencies
 └── README.md                   # README file
